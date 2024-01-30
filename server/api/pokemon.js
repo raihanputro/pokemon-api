@@ -151,51 +151,52 @@ const releasePokemon = async ( req, res ) => {
 };
 
 function fibonacci(num) {
-    if (num == 1) return 0;
-    if (num == 2) return 1;
-    return fibonacci(num - 1) + fibonacci(num - 2);
+    let sequence = [];
+    let n1 = 0,
+    n2 = 1,
+    nextTerm;
+
+    for (let i = 0; i <= num; i++) {
+        // console.log(n1);
+        sequence.push(n1);
+        nextTerm = n1 + n2;
+        n1 = n2;
+        n2 = nextTerm;
+    }
+
+    return sequence[num];
 }
 
 const renamePokemon = async ( req, res ) => {
     try {
-        const getName = req.params['name'];
+        const getId = parseInt(req.params['id']);
+        const getNickname = req.body.nickname;
 
         const rawData = fs.readFileSync(pokemonDb);
         const data = JSON.parse(rawData);
 
-        const pokemonData = _.filter(data.catch, (pokemon) => pokemon.name === getName);
-        console.log(pokemonData[0].nickname, "data");
+        const pokemonData = _.filter(data.catch, (pokemon) => pokemon.id === getId);
 
         if(_.isEmpty(pokemonData)) {
             return res.status(404).json({ status: "Cant find that pokemon!" });
         }
 
-        // const pokemonToRename = _.filter(data.catch, (pokemon) => {
-        //     const splitNickname = pokemon.nickname.split("-");
-        //     console.log(splitNickname[0], '1');
-        //     console.log(splitNickname[1], '2');
+        const exceptTarget = data?.catch.filter((pokemon) => {
+            return pokemon.id !== getId;
+          });
+        
+          const sameNickname = exceptTarget.reduce((result, pokemon) => {
+            if (pokemon.nickname.includes(getNickname)) {
+              result.push(pokemon);
+            }
+            return result;
+          }, []);
 
-        //     const pokemonData1 = _.filter(data.catch, (pokemon) => pokemon.name === getName);
+          const countSame = sameNickname.length;
 
-        //     if( splitNickname[0] === undefined  && splitNickname[1] === undefined) {
-        //         pokemonData[0].nickname = `${req.body.nickname}`
-        //     } else if(splitNickname[0] !== undefined && splitNickname[1] === undefined) {
-        //         pokemonData[0].nickname = `${req.body.nickname}-0`
-        //     } else if(splitNickname[0] !== undefined && splitNickname[1] === '0') {
-        //         pokemonData[0].nickname = `${req.body.nickname}-1`
-        //     } else if(splitNickname[0] !== undefined && splitNickname[1] === '1') {
-        //         pokemonData[0].nickname = `${req.body.nickname}-1`
-        //     } else if(splitNickname[0] !== undefined && splitNickname[1] === '1' ) {
-        //         pokemonData[0].nickname = `${req.body.nickname}-1`
-        //     } 
-        // });
+          const lastSeq = fibonacci(countSame);
 
-        // const pokemonToRename = data.catch.find(pokemon => pokemon.nickname === pokemonData["nickname"]);
-        // const pokemonToRename = _.filter(data.catch, (pokemon) => pokemon.nickname === pokemonData["nickname"]);
-
-        // if(_.isEmpty(pokemonToRename)) {
-        //     fs.writeFileSync(pokemonDb, JSON.stringify(data));
-        // }
+          pokemonData[0].nickname = `${getNickname}-${lastSeq}`;
 
         fs.writeFileSync(pokemonDb, JSON.stringify(data));
         return res.status(200).json({ status: "Rename pokemon success!", pokemon: pokemonData });
@@ -210,6 +211,6 @@ Router.get('/detail/:name', getPokemonDetail);
 Router.get('/catch/:name', catchPokemon);
 Router.get('/list-db', getPokemonDb);
 Router.delete('/release/:id', releasePokemon);
-Router.put('/rename/:name', renamePokemon);
+Router.put('/rename/:id', renamePokemon);
 
 module.exports = Router;
